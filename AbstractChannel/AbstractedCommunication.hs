@@ -2,24 +2,24 @@
 module AbstractedCommunication where
 
 import Data.Aeson
-import qualified ProtoTypes as P 
+--import qualified ProtoTypes as P 
 import Control.Applicative
 import Control.Concurrent (ThreadId)
-import CommTools hiding (sendHttp, receiveHttp)
+--import CommTools hiding (sendHttp, receiveHttp)
 import System.Random
 import Control.Concurrent.MVar
 import Control.Concurrent.STM.TMVar
 import Control.Concurrent.STM
 import Control.Monad.State.Strict
 import Control.Monad
-import CommunicationNegotiator (defaultport)
+--import CommunicationNegotiator (defaultport)
 import System.Timeout (timeout)
 import Control.Concurrent
 import qualified Data.Text.Lazy as LazyText
 import qualified Data.Text.Lazy.Encoding as LazyEncoding
 
 
-import qualified Demo3Shared as AD
+--import qualified Demo3Shared as AD
 import Data.ByteString.Lazy hiding (putStrLn,length,map)
 import Data.IORef
 
