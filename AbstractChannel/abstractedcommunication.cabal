@@ -1,0 +1,22 @@
+Name:                   abstractedcommunication
+Version:                0.1
+Description:            An abstract channel to be implemented for the use in Armored Software and other channel applications.  
+License:                BSD3
+-- License-file:           LICENSE
+Author:                 Paul Kline
+Maintainer:             paulkline@ittc.ku.edu
+Cabal-Version:          >= 1.2
+
+Build-type:             Simple
+
+
+library
+  exposed-modules:      AbstractedCommunication
+  hs-source-dirs:       
+  build-depends:        base,
+                        bytestring,
+                        text,
+                        mtl,
+                        random,
+                        stm,
+                        aeson
