@@ -1,7 +1,7 @@
 {-# LANGUAGE InstanceSigs, ConstraintKinds #-}
 
 
-module TestChannel where
+module MVarChan where
 
 import AbstractedCommunication
 import Control.Concurrent.MVar
