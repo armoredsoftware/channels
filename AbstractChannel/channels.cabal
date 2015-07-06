@@ -1,4 +1,4 @@
-Name:                   AbstractedCommunication
+Name:                   channels
 Version:                0.1
 Description:            An abstract channel to be implemented for the use in Armored Software and other channel applications.  
 License:                BSD3
@@ -11,6 +11,6 @@ Build-type:             Simple
 
 
 library
-  exposed-modules:      Communication.Channels 
-  hs-source-dirs:       
-  build-depends: 
+  exposed-modules:      Communication.Channels
+  hs-source-dirs:       src
+  build-depends:        base

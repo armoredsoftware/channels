@@ -1,5 +1,5 @@
 {-# LANGUAGE RankNTypes, TypeSynonymInstances, FlexibleInstances, ConstraintKinds, OverlappingInstances, OverloadedStrings, RecordWildCards, ExistentialQuantification #-}
-module Channels where
+module AbstractedCommunication where
 
 import Data.Aeson
 import qualified ProtoTypes as P 
