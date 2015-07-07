@@ -5,6 +5,7 @@ module VChanComm where
 import AbstractedCommunication
 import Data.Aeson
 import VChanUtil
+import CommTools
 import Control.Concurrent.MVar
 import Data.ByteString.Lazy hiding (putStrLn,length,map)
 --import CommTools

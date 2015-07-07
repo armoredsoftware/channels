@@ -1,11 +1,11 @@
 {-# LANGUAGE InstanceSigs, ConstraintKinds #-}
 
 
-module MVarChan where
+module MVarComm where
 
 import AbstractedCommunication
 import Control.Concurrent.MVar
-import Demo3SharedNOVCHAN
+--import Demo3SharedNOVCHAN
 import Data.Aeson
 import Control.Concurrent 
 import System.IO.Unsafe

@@ -1,0 +1,22 @@
+Name:                   armoredcommunication
+Version:                0.1
+Description:            The Communication mechanisms used in armored software
+License:                BSD3
+-- License-file:           LICENSE
+Author:                 Paul Kline
+Maintainer:             paulkline@ittc.ku.edu
+Cabal-Version:          >= 1.2
+
+Build-type:             Simple
+
+
+library
+  exposed-modules:      armoredcommunication
+  hs-source-dirs:       
+  build-depends:        base,
+                        bytestring,
+                        text,
+                        mtl,
+                        random,
+                        stm,
+                        aeson

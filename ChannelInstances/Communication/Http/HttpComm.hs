@@ -1,11 +1,12 @@
 {-# LANGUAGE RankNTypes, TypeSynonymInstances, FlexibleInstances, ConstraintKinds, OverlappingInstances, OverloadedStrings, RecordWildCards, ExistentialQuantification #-}
-module HttpChannel where
+module HttpComm where
 
 import AbstractedCommunication 
-import Data.Aeson 
+import Data.Aeson
 import qualified Network.Http.Client as HttpClient
 import qualified Web.Scotty as Scotty
-import CommTools hiding (sendHttp, receiveHttp)
+import CommTools
+--import HttpTools
 import Control.Concurrent.MVar
 import Control.Concurrent
 import Web.Scotty hiding ( put)
@@ -15,13 +16,13 @@ import Control.Applicative
 import Data.ByteString.Lazy hiding (putStrLn,length,map)
 import Control.Monad
 import Control.Monad.State.Strict
-import Demo3Shared as AD
+--import Demo3Shared as AD
 import System.IO.Error (tryIOError)
 import System.Timeout
 
 
 --jsut for testing
-import VChanComm
+--import VChanComm
 data HttpChannel = HttpChannel {
     httpchanThreadID         :: MVar ThreadId,
     httpchanMyServingPort    :: HttpClient.Port,
@@ -44,7 +45,7 @@ sendHttp mess c = do
       HttpClient.setAccept "text/html/json"
       HttpClient.setContentType "application/x-www-form-urlencoded"
      --Prelude.putStrLn ( "Request: " ++ (show req))
-    let nvs = [("request", (toStrict (AD.jsonEncode mess)))]
+    let nvs = [("request", (toStrict (jsonEncode mess)))]
     --Prelude.putStrLn "about to send request"
     let x = HttpClient.encodedFormBody nvs
     --print "Made it here yaaaaaaaaaaaay"
@@ -81,13 +82,13 @@ httpServe c = do
 	     -- myprint' ("Data received on port: " ++ (show port)) 1
 	      
 	      --first converts the Text to UTF8, then then attempts to read a CARequest
-	      let jj = AD.jsonEitherDecode (LazyEncoding.encodeUtf8 a) :: Either String Value
+	      let jj = jsonEitherDecode (LazyEncoding.encodeUtf8 a) :: Either String Value
               liftIO $ putStrLn $ "RECEIVED: " ++ (show jj) ++ " on port: " ++ (show intPort)
 	      case jj of
 		(Left err)     -> text (LazyText.pack "ERROR: Could not even parse as Value.")
 		(Right mess) -> do
 		  liftIO $ forkIO $ putMVar (mvarMess c) mess 
-		  Scotty.json (HttpSuccess (myport)) -- don't know why it won't let me put an empty string in there.
+		  Scotty.text "success" --(HttpSuccess (myport)) -- don't know why it won't let me put an empty string in there.
 		  
   return ()
 
