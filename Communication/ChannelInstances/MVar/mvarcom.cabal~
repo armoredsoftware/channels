@@ -1,0 +1,21 @@
+Name:                   mvarchannelinstance
+Version:                0.1
+Description:            An http instantiation of the Channel class
+License:                BSD3
+-- License-file:           LICENSE
+Author:                 Paul Kline
+Maintainer:             paulkline@ittc.ku.edu
+Cabal-Version:          >= 1.2
+
+Build-type:             Simple
+
+
+library
+  exposed-modules:      VChanComm
+  hs-source-dirs:       
+  build-depends:        base,
+                        bytestring,
+                        VChanUtil,
+                        aeson,
+                        abstractedcommunication,
+                        commtools
