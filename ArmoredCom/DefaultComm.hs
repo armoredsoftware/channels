@@ -3,7 +3,7 @@ module DefaultComm where
 
 
 import AbstractedCommunication
-import HttpChannel
+import HttpComm
 import VChanComm
 import CommTools
 import Network.Http.Client (Hostname) 

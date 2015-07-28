@@ -11,12 +11,11 @@ Build-type:             Simple
 
 
 library
-  exposed-modules:      armoredcommunication
+  exposed-modules:      DefaultComm
   hs-source-dirs:       
   build-depends:        base,
-                        bytestring,
-                        text,
-                        mtl,
-                        random,
-                        stm,
-                        aeson
+                        http-streams,
+                        httpchannelinstance,
+                        commtools,
+                        vchannelinstance,
+                        abstractedcommunication
