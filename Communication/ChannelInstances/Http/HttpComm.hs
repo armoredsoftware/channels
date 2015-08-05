@@ -1,12 +1,12 @@
 {-# LANGUAGE RankNTypes, TypeSynonymInstances, FlexibleInstances, ConstraintKinds, OverlappingInstances, OverloadedStrings, RecordWildCards, ExistentialQuantification #-}
-module Http.HttpComm where
+module HttpComm where
 
 import AbstractedCommunication 
 import Data.Aeson
 import qualified Network.Http.Client as HttpClient
 import qualified Web.Scotty as Scotty
-import Tools.CommTools (getMyIP')
---import HttpTools
+
+import HttpTools
 import Control.Concurrent.MVar
 import Control.Concurrent
 import Web.Scotty hiding ( put)
@@ -16,13 +16,11 @@ import Control.Applicative
 import Data.ByteString.Lazy hiding (putStrLn,length,map)
 import Control.Monad
 import Control.Monad.State.Strict
---import Demo3Shared as AD
 import System.IO.Error (tryIOError)
 import System.Timeout
 
 import ByteStringJSON
---jsut for testing
---import VChanComm
+
 data HttpChannel = HttpChannel {
     httpchanThreadID         :: MVar ThreadId,
     httpchanMyServingPort    :: HttpClient.Port,

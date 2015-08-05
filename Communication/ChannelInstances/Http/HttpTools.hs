@@ -1,4 +1,4 @@
-module Http.HttpTools where
+module HttpTools where
 
 import Data.Aeson as DA
 import Network.Info
