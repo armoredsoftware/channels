@@ -33,7 +33,9 @@ gimmeAChannel ipaddress = do
      return $ Left err 
     Right newChan -> do 
       httpChan <- mkSkeletonChannel newChan  
-      establishComm chanToThem' [vChan,httpChan]
+      --change here to skeleton
+      httpChan' <- mkSkeletonChannel httpchan
+      establishComm chanToThem' [vChan,httpChan']
   
 
   
