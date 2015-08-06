@@ -5,7 +5,7 @@ module DefaultComm where
 import AbstractedCommunication
 import HttpComm
 import VChanComm
-import CommTools
+--import CommTools
 import Network.Http.Client (Hostname) 
 declareDefaultComm :: (Channel -> IO a) -> IO ()
 declareDefaultComm f = do 

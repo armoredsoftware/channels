@@ -10,16 +10,17 @@ myMain :: IO ()
 myMain = do
  let f:: Channel -> IO ()  
      f chan = do  
-         rx <- receive chan :: IO ( [(String,String)])
+         rx <- receive chan :: IO (Result [(Int,Int)])
          case rx of 
           Error err -> do 
             putStrLn err
             return False
-          Success [D0] -> do 
-            send chan [D1]
+          Success x -> do
+            putStrLn $ "This is what I got: " ++ (show x)
+            send chan [(667, 777) :: (Int,Int)]
          putStrLn "success on A side!!!!!!!!"
  forkIO $ declareDefaultComm (\x -> putStrLn "Someone declared a channel with me??")
- eitherChan <- gimmeAChannel "10.100.0.6"
+ eitherChan <- gimmeAChannel "10.100.0.249" --"10.100.0.6"
  case eitherChan of 
    Left err -> 
      putStrLn err 

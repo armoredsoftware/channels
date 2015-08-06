@@ -6,13 +6,13 @@ import HttpComm
 import AbstractedCommunication 
 import Data.Aeson
 --import ProtoTypes
-import Demo3Shared
+--import Demo3Shared
 import DefaultComm 
 import Control.Concurrent
 myMain :: IO ()
 myMain = do
      let f = (\x -> do
-                send x [("hello", "this be the second field")]
+                send x [(11, 22)::(Int,Int)]
                 resp <- receive x :: IO (Result Value)
                 putStrLn $ "response: " ++ (show resp))
      declareDefaultComm f 

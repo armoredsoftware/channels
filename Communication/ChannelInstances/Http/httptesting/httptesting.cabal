@@ -12,7 +12,7 @@ build-type:          Simple
 -- extra-source-files:  
 cabal-version:       >=1.10
 
-executable httptesting
+executable httptestingA
   main-is:             TestHttpChannelAMain.hs
   -- other-modules:       
   other-extensions:    RankNTypes, TypeSynonymInstances, FlexibleInstances, ConstraintKinds, OverlappingInstances, OverloadedStrings, RecordWildCards, ExistentialQuantification
@@ -20,6 +20,26 @@ executable httptesting
                        abstractedcommunication, 
                        aeson, 
                        random,
-                       HttpChannel
-  hs-source-dirs:      ./ ../../../../ArmoredCom/     
+                       HttpChannel,
+                       armoredcommunication,
+                       vchannelinstance,
+                       http-streams
+  hs-source-dirs:      ./ ../../../../ArmoredCom/
+  ghc-options: -O -threaded
+  default-language:    Haskell2010
+
+executable httptestingB
+  main-is:             TestHttpChannelBMain.hs
+  -- other-modules:       
+  other-extensions:    RankNTypes, TypeSynonymInstances, FlexibleInstances, ConstraintKinds, OverlappingInstances, OverloadedStrings, RecordWildCards, ExistentialQuantification
+  build-depends:       base, 
+                       abstractedcommunication, 
+                       aeson, 
+                       random,
+                       HttpChannel,
+                       armoredcommunication,
+                       vchannelinstance,
+                       http-streams
+  hs-source-dirs:      ./ ../../../../ArmoredCom/
+  ghc-options: -O -threaded
   default-language:    Haskell2010

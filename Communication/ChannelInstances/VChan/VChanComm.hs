@@ -1,11 +1,11 @@
 {-# LANGUAGE RankNTypes, TypeSynonymInstances, FlexibleInstances, ConstraintKinds, OverlappingInstances, OverloadedStrings, RecordWildCards, ExistentialQuantification #-}
-module VChan.VChanComm where
+module VChanComm where
 
 
 import AbstractedCommunication
 import Data.Aeson
 import VChanUtil
-import Tools.CommTools
+--import Tools.CommTools
 import Control.Concurrent.MVar
 import Data.ByteString.Lazy hiding (putStrLn,length,map)
 --import CommTools
@@ -96,6 +96,9 @@ instance FromJSON VChanRequest where
   parseJSON (Object o) = VChanRequest <$> o .: "VChanRequestID"    
 
 
+jsonParse bs = case decode bs of
+                Nothing -> Error "Error decoding!!"
+                Just x -> Success x 
 {-
 class IsChannel a where
     send ::  (IsMessage b) => a -> b -> IO Bool
