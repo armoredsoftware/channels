@@ -20,14 +20,14 @@ class IsChannel a where
     --come to think of it, probably could use one for send as well.
     receive :: (IsMessage b) => a -> IO (Result b)
     initialize :: a -> IO ()
-    initFail :: a -> String
     killChan :: a -> IO ()
-    chanTypeOf :: a -> String
     toRequest :: a -> IO Value
     fromRequest :: Value -> a -> IO (Either String a)
-    negotiation ::  a -> IO a
-    defaultChan :: IO a 
     amend ::  Value -> a -> IO a 
+    defaultChan :: IO a 
+    initFail :: a -> String
+    chanTypeOf :: a -> String
+    negotiation ::  a -> IO a
     negotiation c = defaultChan 
 
 
