@@ -14,14 +14,41 @@ import System.Timeout (timeout)
 import Control.Concurrent
 
 import Data.IORef
+{-
+  1. Channels should be able to be created "halfable." What I mean is you 
+     should be able to create your channel WITHOUT first knowing to 
+     whom you are speaking. This is so your channel can receive before 
+     you know where to send.
+     This is important when you are the initializer of communication. Your
+     channel is required to be ready to receive without knowing yet how the
+     other guy wants you to send stuff (i.e. which port? for instance).
+     This brings up the important property your channel needs as well:
+     amendability.
+  2. Amendability:
+      Your Channel should be amendable. Meaning after creation, you need to
+      provide an implentation of amend that, using your comm request, amends
+      the existing channel to reflect the request. 
+      
+  3. You should never call initialize on  
+  -}
+  
+  
 class IsChannel a where
     send ::  (IsMessage b) => a -> b -> IO Bool
     --should add parameter of an IO computation to do in case of a receive error. 
     --come to think of it, probably could use one for send as well.
+    
+    {-receive implementation should block indefinitely.
+      Timeouts are handled in "the big channel" -}
     receive :: (IsMessage b) => a -> IO (Result b)
+    {- Put any initialization needed here.-}
     initialize :: a -> IO ()
+    {- Put any channel cleanup here. -}
     killChan :: a -> IO ()
+    {- Declare how to make a communication request out of an existing channel. -}
     toRequest :: a -> IO Value
+    {- Do not initialize your channel when implementing this method,
+       just create it. -}
     fromRequest :: Value -> a -> IO (Either String a)
     amend ::  Value -> a -> IO a 
     defaultChan :: IO a 
@@ -135,7 +162,7 @@ mkNegotiator x = do
   
 
 
--- the list of channels need to be 'unitialized' meaning they were made with mkChannel'. 
+-- the list of channels need to be 'unintialized' meaning they were made with mkChannel'. 
 declareCommunication :: (Channel, [Channel]) ->(Channel -> IO a) -> IO ()
 declareCommunication (mc@(Channel a _ _ _),chls) f =  do
  forever $ do
@@ -153,7 +180,7 @@ declareCommunication (mc@(Channel a _ _ _),chls) f =  do
         
        Just chan -> do
         putStrLn $ "About to initialize chan and do bChannelInit" 
-        initialize chan --because what is in the list should be mkChannel' s 
+        initialize chan --because what is in the list should have been made by mkChannel' s 
         echan <- bChannelInit chan nonce 
         case echan of 
          Left err -> do 
@@ -265,7 +292,7 @@ bChannelInit c na = do
      
      --send c (CommResponse (na + 1, nb1))
      resp <-  (receive c :: IO (Result CommResponse))
-     putStrLn $ "recieved first message in bchannelInit:" ++ (show resp)
+     putStrLn $ "received first message in bchannelInit:" ++ (show resp)
      case resp of 
        Error err -> do 
          putStrLn err 
