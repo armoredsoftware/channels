@@ -237,8 +237,11 @@ mkCommRequest c = do
 establishComm :: Channel -> [Channel] -> IO (Either String Channel)
 establishComm _ [] = return $ Left "No more Channels to try. All Failed. you suck."
 establishComm neg (x:xs) = do
-  initialize x 
-  eitherchan <- aChannelInit neg x 
+  --initialize x 
+  v <- toRequest x 
+  x' <- fromRequest v x 
+  initialize x' 
+  eitherchan <- aChannelInit neg x' 
   case eitherchan of 
     Left err -> do 
       killChan x 
