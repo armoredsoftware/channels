@@ -16,6 +16,5 @@ library
   build-depends:        base,
                         http-streams,
                         httpchannelinstance,
-                        commtools,
                         vchannelinstance,
                         abstractedcommunication

@@ -42,13 +42,46 @@ instance IsChannel VChannel where
      Just idd -> do 
        mchan <- readIORef (reflibXenVChan c)
        case mchan of 
-         Nothing -> do 
+         Nothing -> do
+           putStrLn $ "REGULAR INITIALIZE SERVERINIT on: " ++ (show idd)
            libchan <- server_init idd
            modifyIORef' (reflibXenVChan c) 
             (\mchan -> case mchan of 
                          Nothing -> Just libchan
                          Just x -> Just x ) 
          Just _ -> return ()
+  initializeA c = do
+    putStrLn $ "In initializeA in VChan"
+    mTheirID <- readIORef ( refmTheirID c )
+    case (mTheirID ) of 
+     Nothing -> return () 
+     Just idd -> do 
+       mchan <- readIORef (reflibXenVChan c)
+       case mchan of 
+         Nothing -> do
+           putStrLn $ "DOING CLIENT INIT TO ID: " ++ (show idd)
+           libchan <- client_init idd
+           modifyIORef' (reflibXenVChan c) 
+            (\mchan -> case mchan of 
+                         Nothing -> Just libchan
+                         Just x -> Just x ) 
+         Just _ -> return ()
+  initializeB c = do
+    putStrLn $ "In initializeB in VChan"
+    mTheirID <- readIORef ( refmTheirID c )
+    case (mTheirID ) of 
+     Nothing -> return () 
+     Just idd -> do 
+       mchan <- readIORef (reflibXenVChan c)
+       case mchan of 
+         Nothing -> do
+           putStrLn $ "DOING SERVERINIT WITH ID: " ++ (show idd)
+           libchan <- server_init idd
+           modifyIORef' (reflibXenVChan c) 
+            (\mchan -> case mchan of 
+                         Nothing -> Just libchan
+                         Just x -> Just x ) 
+         Just _ -> return ()         
   killChan c = do 
     mchan <- readIORef (reflibXenVChan c)                              
     case mchan of 
@@ -84,7 +117,7 @@ instance IsChannel VChannel where
     theirid <- newIORef Nothing
     xenvchan <- newIORef Nothing
     return $ (VChannel theirid xenvchan)
-
+  chanTypeOf c = "VChannel"
 newtype VChanRequest = VChanRequest {
   id :: Int
   } deriving (Show, Eq)

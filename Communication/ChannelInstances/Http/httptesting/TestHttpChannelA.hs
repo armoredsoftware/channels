@@ -20,7 +20,7 @@ myMain = do
             send chan [(667, 777) :: (Int,Int)]
          putStrLn "success on A side!!!!!!!!"
  forkIO $ declareDefaultComm (\x -> putStrLn "Someone declared a channel with me??")
- eitherChan <- gimmeAChannel "10.100.0.249" --"10.100.0.6"
+ eitherChan <- gimmeAChannel "10.100.0.207" --"10.100.0.249" --"10.100.0.6"
  case eitherChan of 
    Left err -> 
      putStrLn err 

@@ -19,4 +19,5 @@ library
                         mtl,
                         random,
                         stm,
-                        aeson
+                        aeson,
+                        unordered-containers

@@ -96,6 +96,7 @@ instance IsChannel HttpChannel where
   send hc mess = sendHttp mess hc 
   receive hc = receiveHttp hc 
   initialize hc = do
+    putStrLn $ "INITIALIZING HTTPCHANNEL SERVING ON: " ++ (show (httpchanMyServingPort hc))
     let mv = httpchanThreadID hc 
     b <- isEmptyMVar mv 
     if b then return ()
@@ -138,7 +139,7 @@ instance IsChannel HttpChannel where
             mv  <- newEmptyMVar
             mv2 <- newEmptyMVar 
             return $ Right $ HttpChannel mv {-(httpchanThreadID hc)-} p {- (httpchanMyServingPort hc)-}  (Just (httpPort req)) (Just (httpIP req)) (httpchanMaybeConnection hc) mv2 {-(mvarMess hc)-}
-    --TODO should find open port and set it here!!!
+  chanTypeOf c = "HttpChannel"
     
        
    

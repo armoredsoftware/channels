@@ -20,11 +20,11 @@ executable httptestingA
                        abstractedcommunication, 
                        aeson, 
                        random,
-                       HttpChannel,
+                       httpchannelinstance,
                        armoredcommunication,
                        vchannelinstance,
                        http-streams
-  hs-source-dirs:      ./ ../../../../ArmoredCom/
+  hs-source-dirs:      
   ghc-options: -O -threaded
   default-language:    Haskell2010
 
@@ -36,10 +36,10 @@ executable httptestingB
                        abstractedcommunication, 
                        aeson, 
                        random,
-                       HttpChannel,
+                       httpchannelinstance,
                        armoredcommunication,
                        vchannelinstance,
                        http-streams
-  hs-source-dirs:      ./ ../../../../ArmoredCom/
+  hs-source-dirs:      
   ghc-options: -O -threaded
   default-language:    Haskell2010

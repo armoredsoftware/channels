@@ -12,7 +12,7 @@ import Control.Monad.State.Strict
 import Control.Monad
 import System.Timeout (timeout)
 import Control.Concurrent
-
+import qualified Data.HashMap.Strict as HM (member, lookup)
 import Data.IORef
 {-
   1. Channels should be able to be created "halfable." What I mean is you 
@@ -44,6 +44,10 @@ class IsChannel a where
     {- Put any initialization needed here.-}
     initialize :: a -> IO ()
     {- Put any channel cleanup here. -}
+    initializeA :: a -> IO ()
+    initializeA = initialize
+    initializeB :: a -> IO ()
+    initializeB = initialize 
     killChan :: a -> IO ()
     {- Declare how to make a communication request out of an existing channel. -}
     toRequest :: a -> IO Value
@@ -83,27 +87,47 @@ instance IsChannel (Channel) where
                                     return (fromJSON m)
  initFail (Channel a _ _ _) = initFail a
  initialize c@(Channel a tidref _ _) = do
+   initialize a
+   putStrLn "In initialize for Channel"
    tr <- readIORef tidref
    case tr of 
      Nothing -> do
        tid <- forkIO $ superReceive c 
        modifyIORef tidref (\_ -> Just tid)
      Just _ -> return () 
-   initialize a 
+ initializeA c@(Channel a tidref _ _) = do
+   initializeA a
+   putStrLn "In initializeA for Channel"
+   tr <- readIORef tidref
+   case tr of 
+     Nothing -> do
+       tid <- forkIO $ superReceive c 
+       modifyIORef tidref (\_ -> Just tid)
+     Just _ -> return () 
+   
+ initializeB c@(Channel a tidref _ _) = do
+   initializeB a
+   putStrLn $ "In initializeB for Channel"
+   tr <- readIORef tidref
+   case tr of 
+     Nothing -> do
+       tid <- forkIO $ superReceive c 
+       modifyIORef tidref (\_ -> Just tid)
+     Just _ -> return ()
+   putStrLn $ "Calling inner initializeB"
  killChan (Channel a tidref _ _) = do 
    killChan a
    tid <- readIORef tidref
    case tid of 
      Nothing -> return () 
-     Just tid' -> killThread tid'
- chanTypeOf (Channel a _ _ _) = chanTypeOf a 
+     Just tid' -> killThread tid' 
  toRequest (Channel a _ _ _) = toRequest a --(internalChan c)
  fromRequest v (Channel a b c d) = do 
    elilChan <- (fromRequest v a)  --(internalChan c)
    case elilChan of 
      Left err -> return (Left err)
      Right lilc -> do 
-       ch <- mkChannel lilc 
+       ch <- mkChannel' lilc 
        return $ Right ch -- (Channel lilc b c d) 
  amend v (Channel a b c d) = do 
    a' <- amend v a 
@@ -111,7 +135,7 @@ instance IsChannel (Channel) where
  negotiation (Channel a _ _ _ ) = do 
   c <- negotiation (a)
   mkChannel c 
-
+ chanTypeOf (Channel a _ _ _) = "Channel: " ++ (chanTypeOf a)
 type IsMessage a = (ToJSON a, FromJSON a)
 
 newtype CommResponse = CommResponse (Integer,Integer) deriving (Show, Eq)
@@ -121,15 +145,29 @@ instance ToJSON CommFail where
     ["CommFail" .= toJSON str]
 instance FromJSON CommFail where
   parseJSON (Object o) = CommFail <$> o .: "CommFail"
-
+  parseJSON _          = mzero  
 
 instance ToJSON CommResponse where
   toJSON (CommResponse pair) = object
     [ "Nonces" .= toJSON pair]
 instance FromJSON CommResponse where
   parseJSON (Object o) = CommResponse <$> o .: "Nonces"
-       
+  parseJSON _          = mzero     
 
+newtype SingleNonce = SingleNonce Integer deriving (Show, Eq, Ord)
+instance ToJSON SingleNonce where
+  toJSON (SingleNonce n) = object
+    ["SingleNonce" .= toJSON n]
+instance FromJSON SingleNonce where
+  parseJSON (Object o) = SingleNonce <$> o .: "SingleNonce"
+  parseJSON _          = mzero  
+newtype NOMATCH = NOMATCH () deriving (Show, Eq)
+instance ToJSON NOMATCH where
+ toJSON (NOMATCH ()) = object
+   ["NOMATCH" .= toJSON ()]
+instance FromJSON NOMATCH where
+ parseJSON (Object o) = NOMATCH <$> o .: "NOMATCH"
+ parseJSON _          = mzero
 defaultTimeout = 10000000 :: Int  -- 10 seconds 
 shortTimeout   = 10000000 :: Int  -- 10 second 
 
@@ -161,33 +199,38 @@ mkNegotiator x = do
   mkChannel' x
   
 
-
+ 
 -- the list of channels need to be 'unintialized' meaning they were made with mkChannel'. 
 declareCommunication :: (Channel, [Channel]) ->(Channel -> IO a) -> IO ()
 declareCommunication (mc@(Channel a _ _ _),chls) f =  do
  forever $ do
-  msg <- receive a :: IO (Result (Value,Integer))   -- forkIO $ stutterReceive mc mv 
+  msg <- receive a :: IO (Result (Value,Value,Integer))   -- forkIO $ stutterReceive mc mv 
   putStrLn $ "I received a message on the communicator negotiator!!: " ++ (show msg)
   case  msg of 
    Error err -> do 
-    putStrLn $ "improper comm request. not a pair!: " ++ err 
-   Success (req,nonce) -> do 
+    putStrLn $ "Error in declareCommunication: improper comm request. expected (Value,Value,Integer)!: " ++ err 
+   Success (negReq,req,nonce) -> do
+     neg' <- amend negReq mc 
      let ls = map (fromRequest req) chls  
      ls' <- sequence ls 
      case fstRight ls' of 
        Nothing -> do 
         putStrLn "no matching channels"
-        
+        send neg' (NOMATCH ())
+        return ()
        Just chan -> do
-        putStrLn $ "About to initialize chan and do bChannelInit" 
-        initialize chan --because what is in the list should have been made by mkChannel' s 
-        echan <- bChannelInit chan nonce 
-        case echan of 
-         Left err -> do 
-          putStrLn $ "Error in bchannel init: " ++ err 
-         Right chan' -> do 
-          f chan
-          putStrLn "success"
+         putStrLn $ "About to initialize chan and do bChannelInit" 
+         initializeB chan --because what is in the list should have been made by mkSkeleton
+         reqBack <- toRequest chan
+         send neg' (reqBack,nonce+1) 
+         echan <- bChannelInit chan nonce 
+         case echan of 
+           Left err -> do 
+             putStrLn $ "Error in bchannel init: " ++ err 
+           Right chan' -> do
+             putStrLn $ "Channel successfully established: " ++ (chanTypeOf chan')
+             f chan
+             putStrLn "success"
 
 
 fstRight :: [Either a b] -> Maybe b 
@@ -239,56 +282,107 @@ establishComm _ [] = return $ Left "No more Channels to try. All Failed. you suc
 establishComm neg (x:xs) = do
   --initialize x 
   v <- toRequest x 
-  x' <- fromRequest v x 
-  initialize x' 
-  eitherchan <- aChannelInit neg x' 
-  case eitherchan of 
-    Left err -> do 
-      killChan x 
-      establishComm neg xs
-    Right chan -> return $ Right chan 
+  ex' <- fromRequest v x
+  case ex' of
+   Left err -> do
+     putStrLn $ "weird error in establishComm. this should always succeed: " ++ err ++ " trying next skelchan in list."
+     establishComm neg xs
+   Right x' -> do 
+    -- putStrLn $ "In establishComm, about to initialize x'"
+    -- initialize x' 
+     eitherchan <- aChannelInit neg x' 
+     case eitherchan of 
+       Left err -> do 
+         killChan x'
+         --PUT THE R
+         establishComm neg xs
+       Right chan -> do
+         putStrLn $ "Channel established: " ++ (chanTypeOf chan)
+         return $ Right chan 
 
   
 
 --second channel gets ammended into channel we return. 
 aChannelInit :: Channel -> Channel -> IO (Either String (Channel))
-aChannelInit neg c = do 
+aChannelInit toneg c = do 
   putStrLn "beginning achannelInit"
   (req,n1) <- mkCommRequest c 
   putStrLn $ "Here is the request I am creating for my request: " ++ (show req)
-  send neg (req,n1) 
-  info <- receive c :: IO (Result (Value,Integer,Integer))
-  case info of 
-   Error err -> do 
-     putStrLn err 
-     return (Left err)
-   Success (reqv, n1',nb1) -> do 
-     c' <- amend reqv c 
-     putStrLn $ " received first message, now about to send 2 nonces on the new channel: "
-     n1_2 <- (randomIO :: IO Integer)
-     if n1' == n1+1 then do 
-       send c' (CommResponse (nb1+1,n1_2))
-       putStrLn $ "nonces match, about to receive commResponse" 
-       resp <- receive c' :: IO (Result CommResponse)
-       case resp of 
-        Error err -> do 
-         putStrLn err
-         return $ Left err
-        Success (CommResponse (n1_2',x)) -> do 
-         if ((n1_2' == (n1_2 + 1)) &&( x == 0)) then
-           return $ Right c' 
-          else do
-           let str = "final nonces did not match."
-           putStrLn str
-           return $ Left str            
-         else do 
-          let str = "n1' did not match n1 + 1."
+  negreq <- toRequest toneg 
+  send toneg (negreq,req,n1)
+  wwval <- receive toneg :: IO (Result Value) --just as value to catch the NOMATCH Response (Value,Integer))
+  case wwval of
+    Error err -> do
+      let str = "ERROR in aChannelInit. first receive failed. Couldn't even read the message as a Value"
+      putStrLn str
+      return $ Left str
+    Success val -> do
+      case fromJSON val :: Result (NOMATCH) of
+        Success _ -> do
+          let str = "Target has responded that it does not support the attempted channel."
           putStrLn str
           return $ Left str
+        Error _ -> --this is a GOOD thing. We failed to read the response as an error.. so it was what we expected! maybe.. but at least not an error.  
+          case fromJSON val :: Result (Value,Integer) of
+            Error err -> do
+              let str =  "Error in aChannelInit in mess back on neg chan: " ++ (show val)
+              putStrLn $ str ++ " " ++ err
+              return $ Left (str ++ " " ++ err)
+     
+            Success (val,n1') ->
+               if n1' == (n1 + 1) then do         
+                  c' <- amend val c
+                  initializeA c'
+                  n2 <- randomIO :: IO Integer
+                  send c' (SingleNonce n2)
+                  wn2' <- receive c' :: IO (Result SingleNonce)
+                  case wn2' of
+                    Error err -> do
+                      let str = "Error getting back n2+1: "
+                      putStrLn $ str ++ err
+                      return $ Left (str ++ err)
+                    Success (SingleNonce n2') ->
+                      if (n2' == (n2 + 1)) then do
+                        putStrLn "Successfully got n2'==n2+1"
+                        send c' (SingleNonce (n2' + 1))
+                        return $ Right c' 
+                      else do 
+                        let str = "Error: n2'!=n2+1"
+                        putStrLn str
+                        return $ Left str 
+               else do
+                 let str = "Error: n1' != n1 + 1"
+                 putStrLn str
+                 return $ Left str 
+ 
 
 bChannelInit :: Channel -> Integer -> IO (Either String Channel)
-bChannelInit c na = do 
+bChannelInit c na = do
      putStrLn "bChannelInit triggered!!"
+
+     wn2 <- receive c :: IO (Result (SingleNonce))
+     case wn2 of
+       Error err -> do
+         let str = "Error in bChannelInit receiving n2: " ++ err
+         putStrLn str
+         return $ Left str
+       Success (SingleNonce n2) -> do
+         send c (SingleNonce (n2 + 1))
+         wn2'' <- receive c :: IO (Result (SingleNonce))
+         case wn2'' of
+           Error err -> do
+             let str = "Error in bChannelInit receiving n2'': " ++ err
+             putStrLn str
+             return $ Left str
+           Success (SingleNonce n2'') -> 
+             if n2'' == (n2 + 1 + 1) then do
+               return $ Right c
+             else do
+               let str = "Error in bChannelInit: n2''!= (n2 +1 +1)"
+               putStrLn str 
+               return $ Left str 
+{-
+             
      nb1 <- randomIO :: IO Integer 
      respReq <- toRequest c 
      send c (respReq,na+1,nb1)
@@ -308,5 +402,5 @@ bChannelInit c na = do
              return $ Right c --han 
            else do 
              return $ Left "n1' did not match n1."   
-
+-}
 
