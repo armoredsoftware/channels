@@ -1,51 +1,57 @@
-{-# LANGUAGE ViewPatterns, RecordWildCards, ConstraintKinds #-}
+{-# LANGUAGE OverloadedStrings, ViewPatterns, RecordWildCards, ConstraintKinds #-}
 module CommunicationMonad where
 
-import Control.Monad.Trans.State.Strict hiding (get, put)
-import qualified Control.Monad.Trans.State.Strict as S 
 import AbstractedCommunication
-import qualified AbstractedCommunication as A 
 import Data.Aeson
-import Control.Monad.IO.Class (liftIO, MonadIO)
-import Control.Monad.State.Class (MonadState)
-import Control.Monad.Trans.Class
-class (Monad m) => MonadCommunication m where
-  send :: (IsMessage b) => b ->  m Bool
-  receive :: m a
-  getChannel :: m Channel 
+import Control.Applicative
 
---runCommunication :: (ToJSON a) => Channel -> [Channel] -> Maybe a -> (s,b)
---runCommunicatio
-newtype CommMonad s a = CommMonad  (StateT (Channel,s) IO a)
+data Converse a = Converse { chat :: (Channel -> IO (a,Channel))}
+data FailureChannel = FailureChannel deriving (Show)
+instance IsChannel FailureChannel where
+ send f _ = do
+   putStrLn "FailureChannel Send"
+   return False
+ receive f = return (Error "Failure Receive")
+ initialize f = do
+  putStrLn "FailureChannel initialize"
+ killChan f = putStrLn "FailureChannel killChan"
+ toRequest f = return (Data.Aeson.String "FailureChannel toRequest")
+ fromRequest v f = return $ Left "FailureChannel fromRequest"
+ amend v f = return f
+ defaultChan = return FailureChannel
+ chanTypeOf f = show f 
+ 
 
+instance Functor Converse where
+  fmap f conv1 = Converse (\c -> do
+                   (x,ch) <- chat conv1 c 
+                   return (f x, ch) )
 
-instance Monad (CommMonad s) where
-  return a = CommMonad $ state $ \s -> (a, s)
-  (CommMonad m) >>= k  = CommMonad $ StateT $ \s -> do
-        ~(a, s') <- runStateT m s
-        let (CommMonad p) = k a 
-        runStateT p s'
-  fail str = CommMonad $ StateT $ \_ -> fail str
-
-instance  MonadIO (CommMonad m) where
-  liftIO (x) = CommMonad ( liftIO x) 
-
-get :: CommMonad a b
-get = do
-  (c,s) <- S.get
-  return s 
-instance MonadCommunication (CommMonad s) where
-  getChannel = do
-   (c,_) <- S.get
-   return c 
-  send x = do
-    c <- getChannel
-    r <- liftIO $ A.send c x 
-    return r
-  receive = do
-    c <- getChannel
-    mess <- liftIO $ A.receive c 
-    return () 
-
-
+instance Applicative Converse where
+  pure x = Converse (\c -> return (x,c))
+  fab <*> fa = Converse (\c -> do
+                (f,ch) <- chat fab c
+                (a,ch2) <- chat fa ch
+                return (f a,ch2))
     
+instance Monad (Converse) where
+  return x = Converse (\c -> return (x,c))
+  t >>= f = Converse (\c -> do
+               (x,ch) <- (chat t) c
+               chat (f x) ch)
+  fail str = Converse (\c -> do
+               putStrLn $ "Converse Error: " ++ str
+               error str)
+
+send :: (IsMessage m) => m -> Converse Bool
+send m = Converse (\c -> do
+          b <- AbstractedCommunication.send c m
+          return (b,c))
+
+receive :: (IsMessage m) => Converse m
+receive = Converse (\c -> do
+            res <- AbstractedCommunication.receive c
+            case res of
+              Error err -> fail err
+              Success m -> return (m,c))
+         
