@@ -56,7 +56,7 @@ class IsChannel a where
     fromRequest :: Value -> a -> IO (Either String a)
     amend ::  Value -> a -> IO a 
     defaultChan :: IO a 
-    initFail :: a -> String
+    --initFail :: a -> String
     chanTypeOf :: a -> String
     negotiation ::  a -> IO a
     negotiation c = defaultChan 
@@ -85,7 +85,7 @@ instance IsChannel (Channel) where
                                      then return False --note that we have already taken the unitMVar. We simply make note here that it is still empty. false to match
                                      else tryPutMVar mvarUnit () --non-blocking
                                     return (fromJSON m)
- initFail (Channel a _ _ _) = initFail a
+ --initFail (Channel a _ _ _) = initFail a
  initialize c@(Channel a tidref _ _) = do
    initialize a
    putStrLn "In initialize for Channel"
