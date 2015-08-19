@@ -4,6 +4,7 @@ module DefaultComm where
 
 import AbstractedCommunication
 import HttpComm
+import HttpTunaComm
 import VChanComm
 --import CommTools
 import Network.Http.Client (Hostname) 
@@ -11,15 +12,15 @@ declareDefaultComm :: (Channel -> IO a) -> IO ()
 declareDefaultComm f = do 
   vchan <- defaultChan :: IO VChannel 
   vChan <- mkSkeletonChannel vchan 
-  httpchan <- defaultChan :: IO HttpChannel
+  httpchan <- defaultChan :: IO HttpTunaChannel
   httpChan <- mkSkeletonChannel httpchan 
-  httpnegotiator <- defaultChan :: IO HttpChannel 
+  httpnegotiator <- defaultChan :: IO HttpTunaChannel 
   httpNegotiator <- mkNegotiator httpnegotiator 
-  declareCommunication (httpNegotiator,[vChan, httpChan]) f 
+  declareCommunication (httpNegotiator,[ httpChan]) f 
 
 gimmeAChannel :: Hostname -> IO (Either String Channel)
 gimmeAChannel ipaddress = do
-  p <- defaultChan :: IO HttpChannel
+  p <- defaultChan :: IO HttpTunaChannel
   r <- toRequest p --how to talk to nego.
   ep' <- fromRequest r p --fromRequest gets an open port. 
   case ep' of
@@ -29,12 +30,12 @@ gimmeAChannel ipaddress = do
       return $ Left str
     Right toNeg -> do
       
-      let (HttpChannel {..}) = toNeg --defaultChan :: IO HttpChannel
-      let chanToThem = HttpChannel { httpchanTheirIp = Just ipaddress, ..}
+      let (HttpTunaChannel {..}) = toNeg --defaultChan :: IO HttpChannel
+      let chanToThem = HttpTunaChannel { httpchanTheirIp = Just ipaddress, ..}
       chanToThem' <- mkChannel chanToThem
       vchan <- defaultChan :: IO VChannel 
       vChan <- mkSkeletonChannel vchan 
-      httpchan <- defaultChan :: IO HttpChannel
+      httpchan <- defaultChan :: IO HttpTunaChannel
       req <- toRequest httpchan 
       eitherNewhttpchan <- fromRequest req httpchan 
       case eitherNewhttpchan of 

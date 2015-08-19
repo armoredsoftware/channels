@@ -1,9 +1,10 @@
 {-# LANGUAGE RankNTypes, TypeSynonymInstances, FlexibleInstances, ConstraintKinds, OverlappingInstances, OverloadedStrings, RecordWildCards, ExistentialQuantification #-}
-module HttpComm where
+module HttpTunaComm  (HttpTunaChannel (..)) where
 
 import AbstractedCommunication 
 import Data.Aeson
 import qualified Network.Http.Client as HttpClient
+import Network.Http.Client
 import qualified Web.Scotty as Scotty
 
 import HttpTools
@@ -21,7 +22,7 @@ import System.Timeout
 
 import ByteStringJSON
 
-data HttpChannel = HttpChannel {
+data HttpTunaChannel = HttpTunaChannel {
     httpchanThreadID         :: MVar ThreadId,
     httpchanMyServingPort    :: HttpClient.Port,
     httpchanTheirServingPort :: Maybe HttpClient.Port,
@@ -31,30 +32,21 @@ data HttpChannel = HttpChannel {
  --   httpchanTMVarMsgList     :: (IsMessage a) => TMVar [a],
 --    httpchanTMVarUnit        :: TMVar ()
    }
-sendHttp :: (IsMessage a) => a -> HttpChannel -> IO Bool
+
+
+sendHttp :: (IsMessage a) => a -> HttpTunaChannel -> IO Bool
 sendHttp mess c = do
   case (httpchanTheirServingPort c, httpchanTheirIp c) of 
-   (Just p,Just ipp) -> do 
-    putStrLn $ "Sending to: " ++ (show ipp) ++ " and port: " ++ (show p)
-    c <- HttpClient.openConnection ipp p
-			    
-    q <- HttpClient.buildRequest $ do
-      HttpClient.http HttpClient.POST "/"
-      HttpClient.setAccept "text/html/json"
-      HttpClient.setContentType "application/x-www-form-urlencoded"
-     --Prelude.putStrLn ( "Request: " ++ (show req))
-    let nvs = [("request", (toStrict (jsonEncode mess)))]
-    --Prelude.putStrLn "about to send request"
-    let x = HttpClient.encodedFormBody nvs
-    --print "Made it here yaaaaaaaaaaaay"
-    HttpClient.sendRequest c q (x)
-    return True
+   (Just p,Just ipp) -> do
+     putStrLn "Tuna Forward.."
+     sendToTuna ipp p (toJSON mess)
+     return True
    (_,_) -> do 
-    putStrLn $ "Error!!! can't send anything! found nothing for 'their' port or IP"
-    return False
+     putStrLn $ "Error in sendHttp (tuna version)!!! can't send anything! found nothing for 'their' port or IP"
+     return False
    
 
-receiveHttp :: (IsMessage a) => HttpChannel -> IO (Result a)
+receiveHttp :: (IsMessage a) => HttpTunaChannel -> IO (Result a)
 receiveHttp c = do 
   val <- takeMVar (mvarMess c)
   putStrLn $ "Receiving: " ++ (show val)
@@ -62,7 +54,7 @@ receiveHttp c = do
 
 
 
-httpServe :: HttpChannel -> IO ()
+httpServe :: HttpTunaChannel -> IO ()
 httpServe c = do
   let myport = httpchanMyServingPort c 
   let intPort = (fromIntegral myport :: Int)
@@ -92,7 +84,7 @@ httpServe c = do
 
 defaultport = 55555
 maxport =     55655
-instance IsChannel HttpChannel where
+instance IsChannel HttpTunaChannel where
   send hc mess = sendHttp mess hc 
   receive hc = receiveHttp hc 
   initialize hc = do
@@ -123,7 +115,7 @@ instance IsChannel HttpChannel where
         return hc 
       Success req -> do 
         putStrLn $ "successfully amended using: " ++ (show req)
-        return $ HttpChannel (httpchanThreadID hc) (httpchanMyServingPort hc)  (Just (httpPort req)) (Just (httpIP req)) (httpchanMaybeConnection hc) (mvarMess hc)
+        return $ HttpTunaChannel (httpchanThreadID hc) (httpchanMyServingPort hc)  (Just (httpPort req)) (Just (httpIP req)) (httpchanMaybeConnection hc) (mvarMess hc)
   fromRequest reqv hc = do
      case (fromJSON reqv) :: Result HttpReq of
       Error er -> return $ Left $ "No parse of Req: " ++ er 
@@ -138,8 +130,8 @@ instance IsChannel HttpChannel where
           Right p -> do 
             mv  <- newEmptyMVar
             mv2 <- newEmptyMVar 
-            return $ Right $ HttpChannel mv {-(httpchanThreadID hc)-} p {- (httpchanMyServingPort hc)-}  (Just (httpPort req)) (Just (httpIP req)) (httpchanMaybeConnection hc) mv2 {-(mvarMess hc)-}
-  chanTypeOf c = "HttpChannel"
+            return $ Right $ HttpTunaChannel mv {-(httpchanThreadID hc)-} p {- (httpchanMyServingPort hc)-}  (Just (httpPort req)) (Just (httpIP req)) (httpchanMaybeConnection hc) mv2 {-(mvarMess hc)-}
+  chanTypeOf c = "HttpTunaChannel"
     
        
    
@@ -147,7 +139,7 @@ instance IsChannel HttpChannel where
 --   ipp <- getMyIP'
    mv1 <- newEmptyMVar
    mv2 <- newEmptyMVar 
-   return $ HttpChannel mv1 (fromIntegral defaultport) (Just (fromIntegral defaultport)) Nothing Nothing mv2
+   return $ HttpTunaChannel mv1 (fromIntegral defaultport) (Just (fromIntegral defaultport)) Nothing Nothing mv2
 data HttpReq = HttpReq {
                 httpIP :: HttpClient.Hostname,
                 httpPort :: HttpClient.Port
@@ -166,14 +158,14 @@ instance FromJSON HttpReq where
 dumdumHttpIO = do 
  mv1 <- newEmptyMVar
  mv2 <- newEmptyMVar
- return $ HttpChannel mv1 0 Nothing Nothing Nothing mv2 
+ return $ HttpTunaChannel mv1 0 Nothing Nothing Nothing mv2 
 
 test :: IO ()
 test = do 
   putStrLn "begginning test"
-  lilNeg <- defaultChan :: IO HttpChannel
+  lilNeg <- defaultChan :: IO HttpTunaChannel
   comneg <- mkChannel $ lilNeg 
-  dumChan <- defaultChan :: IO HttpChannel
+  dumChan <- defaultChan :: IO HttpTunaChannel
   emptyChan <- mkChannel' dumChan
   declareCommunication (comneg,[emptyChan]) (\x -> putStrLn "succ")
 
@@ -187,4 +179,31 @@ findOpenPort x max = do
     meither <- timeout 250 $ tryIOError $ do  scotty x  (do Web.Scotty.get "/" $ Web.Scotty.text "hello there!\n")
     case meither of 
       Nothing -> return $ Right (fromIntegral x) 
-      Just _  -> findOpenPort (x + 1) max 
+      Just _  -> findOpenPort (x + 1) max
+
+
+
+
+
+
+{- EDIT FOR TUNA FORWARDING -}
+tunaIP= "129.237.120.39"
+tunaport = 55111
+sendToTuna :: Hostname -> Port -> Value -> IO Connection
+sendToTuna i p v = do
+   c <- openConnection tunaIP tunaport
+   putStrLn "Just opened a connection to TUNA"
+   q <- buildRequest $ do
+      http POST "/"
+      setAccept "text/html/json"
+      setContentType "application/x-www-form-urlencoded"
+    --Prelude.putStrLn ( "Request: " ++ (show req))
+   mip <- getMyIP'
+   let nvs = [("request", (toStrict (Data.Aeson.encode (mip, i,p,v))))]
+   --Prelude.putStrLn "about to send request"
+   let x = encodedFormBody nvs
+   --print "Made it here yaaaaaaaaaaaay"
+   sendRequest c q (x)
+   putStrLn "Just performed sendRequeset to TUNA' "
+   return c
+{- ------------------------ -}
