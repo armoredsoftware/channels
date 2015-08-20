@@ -18,4 +18,5 @@ library
                         httpchannelinstance,
                         httptunachannelinstance,
                         vchannelinstance,
-                        abstractedcommunication
+                        abstractedcommunication,
+                        communicationmonad			

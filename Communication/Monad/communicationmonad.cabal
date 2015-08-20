@@ -1,6 +1,7 @@
-Name:                   armoredcommunication
+Name:                   communicationmonad
 Version:                0.1
-Description:            The Communication mechanisms used in armored software
+Description:            Used in conjuction with the abstractedcommunication
+                        module to make conversations!
 License:                BSD3
 -- License-file:           LICENSE
 Author:                 Paul Kline
@@ -11,11 +12,9 @@ Build-type:             Simple
 
 
 library
-  exposed-modules:      DefaultComm
+  exposed-modules:      CommunicationMonad
   hs-source-dirs:       
-  build-depends:        base,
-                        http-streams,
-                        httpchannelinstance,
-                        commtools,
-                        vchannelinstance,
-                        abstractedcommunication
+  build-depends:        abstractedcommunication,
+                        aeson,
+                        transformers,
+                        base			

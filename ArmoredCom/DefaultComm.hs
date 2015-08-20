@@ -6,18 +6,36 @@ import AbstractedCommunication
 import HttpComm
 import HttpTunaComm
 import VChanComm
---import CommTools
+import CommunicationMonad
 import Network.Http.Client (Hostname) 
 declareDefaultComm :: (Channel -> IO a) -> IO ()
 declareDefaultComm f = do 
-  vchan <- defaultChan :: IO VChannel 
+  chans <- mkDefaultChans
+  declareCommunication chans f
+  
+mkDefaultChans :: IO (Channel, [Channel])
+mkDefaultChans = do
+  vchan <- defaultChan :: IO VChannel
   vChan <- mkSkeletonChannel vchan 
   httpchan <- defaultChan :: IO HttpTunaChannel
   httpChan <- mkSkeletonChannel httpchan 
   httpnegotiator <- defaultChan :: IO HttpTunaChannel 
   httpNegotiator <- mkNegotiator httpnegotiator 
-  declareCommunication (httpNegotiator,[ httpChan]) f 
+  return (httpNegotiator,[ vChan, httpChan])
 
+declareDefaultComm' :: Converse a -> IO ()
+declareDefaultComm' conv = do
+  chans <- mkDefaultChans
+  declareCommunication' chans conv
+
+talkTo :: Hostname -> Converse a -> IO (Either String a)
+talkTo ipaddress conv = do
+  eitherChan <- gimmeAChannel ipaddress
+  case eitherChan of
+    Left err -> return $ Left err
+    Right c -> do
+     a <- runConverse c conv
+     return $ Right a 
 gimmeAChannel :: Hostname -> IO (Either String Channel)
 gimmeAChannel ipaddress = do
   p <- defaultChan :: IO HttpTunaChannel
