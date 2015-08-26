@@ -2,11 +2,13 @@
 module TestHttpChannelA where
 import Control.Concurrent
 import HttpComm
-import AbstractedCommunication 
+import AbstractedCommunication hiding (receive, send)
 import Data.Aeson
 --import ArmoredTypes
 import DefaultComm
-myMain :: IO ()
+import CommunicationMonad
+import Control.Monad.IO.Class
+{-myMain :: IO ()
 myMain = do
  let f:: Channel -> IO ()  
      f chan = do  
@@ -27,7 +29,22 @@ myMain = do
    Right chan -> do 
      f chan 
      putStrLn "Success! I did the channel Stuff"
-
+-}
+myMain :: IO ()
+myMain = do
+  return ()
+  --declareDefaultComm' testA
+  eitherRes <- talkTo "10.100.0.207" testA
+  putStrLn (show eitherRes)
+  
+testA :: Converse ()
+testA = do
+  rx <- receive :: Converse [(Int,Int)]
+  liftIO $ putStrLn $ "I got: " ++ (show rx)
+  send [(777,888) :: (Int,Int)]
+  rx2 <- receive :: Converse [(Int,Int)]
+  liftIO $ putStrLn $ "I got again: " ++ (show rx2)
+  return ()
  {-    
      lilNeg <- defaultChan :: IO HttpChannel
 --  r <- toRequest lilNeg

@@ -3,19 +3,38 @@ module TestHttpChannelB where
 
 import System.Random
 import HttpComm
-import AbstractedCommunication 
+import AbstractedCommunication hiding (send, receive)
 import Data.Aeson
 --import ProtoTypes
 --import Demo3Shared
 import DefaultComm 
 import Control.Concurrent
-myMain :: IO ()
+import CommunicationMonad
+import Control.Monad.IO.Class
+{-myMain :: IO ()
 myMain = do
      let f = (\x -> do
                 send x [(11, 22)::(Int,Int)]
                 resp <- receive x :: IO (Result Value)
                 putStrLn $ "response: " ++ (show resp))
-     declareDefaultComm f 
+     declareDefaultComm f
+-}
+
+myMain :: IO ()
+myMain = do
+  declareDefaultComm' testB
+
+
+  
+type Ip = [(Int,Int)]
+testB :: Converse ()
+testB = do
+  send [(11,22) :: (Int,Int)]
+  resp <- receive :: Converse [(Int,Int)]
+  liftIO $ putStrLn $ "response: " ++ (show resp)
+  send ([(111,222)] :: Ip)
+  liftIO $ putStrLn $ "End of Converse"
+  return ()
 {-
      lilNeg <- defaultChan :: IO HttpChannel
 

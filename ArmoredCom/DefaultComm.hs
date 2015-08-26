@@ -25,8 +25,8 @@ mkDefaultChans = do
 
 declareDefaultComm' :: Converse a -> IO ()
 declareDefaultComm' conv = do
-  chans <- mkDefaultChans
-  declareCommunication' chans conv
+  chans@(n,[vchan,httpChan]) <- mkDefaultChans
+  declareCommunication' (n,[vchan,httpChan]) conv
 
 talkTo :: Hostname -> Converse a -> IO (Either String a)
 talkTo ipaddress conv = do
