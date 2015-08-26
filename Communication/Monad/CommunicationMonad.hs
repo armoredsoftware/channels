@@ -7,7 +7,7 @@ import Control.Applicative
 import Control.Monad.IO.Class
 
 data Converse a = Converse { chat :: (Channel -> IO (a,Channel))}
-
+                | CommError String
 instance MonadIO Converse where
   liftIO ioa = Converse (\c -> do
     x <- ioa
@@ -45,12 +45,13 @@ instance Applicative Converse where
     
 instance Monad (Converse) where
   return x = Converse (\c -> return (x,c))
+  (CommError err) >>= _ = CommError err
   t >>= f = Converse (\c -> do
                (x,ch) <- (chat t) c
                chat (f x) ch)
-  fail str = Converse (\c -> do
+  fail str = CommError $ "CommError:" ++str {-Converse (\c -> do
                putStrLn $ "Converse Error: " ++ str
-               error str)
+               error str)-}
 
 send :: (IsMessage m) => m -> Converse Bool
 send m = Converse (\c -> do
@@ -61,11 +62,8 @@ receive :: (IsMessage m) => Converse m
 receive = Converse (\c -> do
             res <- AbstractedCommunication.receive c
             case res of
-              Error err -> fail err
+              Error err -> fail $ "Monad Receive: " ++ err --error err
               Success m -> return (m,c))
-
-
-
 
 data FailureChannel = FailureChannel deriving (Show)
 instance IsChannel FailureChannel where
@@ -78,6 +76,14 @@ instance IsChannel FailureChannel where
  killChan f = putStrLn "FailureChannel killChan"
  toRequest f = return (Data.Aeson.String "FailureChannel toRequest")
  fromRequest v f = return $ Left "FailureChannel fromRequest"
- amend v f = return f
+ amend v f = return f     
  defaultChan = return FailureChannel
  chanTypeOf f = show f 
+ 
+ 
+test :: Converse ()
+test = do 
+   --x <- CommunicationMonad.receive :: Converse String 
+   str <- return "this is a string"
+   liftIO $ putStrLn (show str)
+   return ()
