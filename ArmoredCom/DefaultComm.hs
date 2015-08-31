@@ -7,7 +7,8 @@ import HttpComm
 import HttpTunaComm
 import VChanComm
 import CommunicationMonad
-import Network.Http.Client (Hostname) 
+import Network.Http.Client (Hostname)
+import System.IO.Error
 declareDefaultComm :: (Channel -> IO a) -> IO ()
 declareDefaultComm f = do 
   chans <- mkDefaultChans
@@ -34,8 +35,11 @@ talkTo ipaddress conv = do
   case eitherChan of
     Left err -> return $ Left err
     Right c -> do
-     a <- runConverse c conv
-     return $ Right a 
+     eitherIOErrora <- tryIOError $ runConverse c conv
+     case eitherIOErrora of
+       Left ioerr -> return $ Left $ ioeGetErrorString ioerr
+       Right a -> return $ Right a
+     
 gimmeAChannel :: Hostname -> IO (Either String Channel)
 gimmeAChannel ipaddress = do
   p <- defaultChan :: IO HttpTunaChannel
@@ -58,14 +62,16 @@ gimmeAChannel ipaddress = do
       eitherNewhttpchan <- fromRequest req httpchan 
       case eitherNewhttpchan of 
         Left err -> do 
-          putStrLn $ err 
+          putStrLn $ err
+          killChan chanToThem' --this method started it, I better clean it up.
           return $ Left err 
         Right newChan -> do 
           httpChan <- mkSkeletonChannel newChan  
           --change here to skeleton
           httpChan' <- mkSkeletonChannel httpchan
-          establishComm chanToThem' [vChan, httpChan']
-  
+          r <- establishComm chanToThem' [vChan, httpChan']
+          killChan chanToThem' --this method started it, I better clean it up.
+          return r
 
   
 

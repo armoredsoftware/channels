@@ -11,9 +11,11 @@ import Data.ByteString.Lazy hiding (putStrLn,length,map)
 --import CommTools
 import Data.IORef
 import Control.Applicative
+import Control.Concurrent
 data VChannel = VChannel {
      refmTheirID :: IORef (Maybe Int),
-     reflibXenVChan :: IORef (Maybe LibXenVChan)
+     reflibXenVChan :: IORef (Maybe LibXenVChan),
+     refIsServer :: IORef (Maybe Bool)
      }
 
 
@@ -51,6 +53,7 @@ instance IsChannel VChannel where
                          Just x -> Just x ) 
          Just _ -> return ()
   initializeA c = do
+    modifyIORef' (refIsServer c) (\_ -> Just False)
     putStrLn $ "In initializeA in VChan"
     mTheirID <- readIORef ( refmTheirID c )
     case (mTheirID ) of 
@@ -67,6 +70,7 @@ instance IsChannel VChannel where
                          Just x -> Just x ) 
          Just _ -> return ()
   initializeB c = do
+    modifyIORef' (refIsServer c) (\_ -> Just True)
     putStrLn $ "In initializeB in VChan"
     mTheirID <- readIORef ( refmTheirID c )
     case (mTheirID ) of 
@@ -82,11 +86,28 @@ instance IsChannel VChannel where
                          Nothing -> Just libchan
                          Just x -> Just x ) 
          Just _ -> return ()         
-  killChan c = do 
-    mchan <- readIORef (reflibXenVChan c)                              
-    case mchan of 
-      Nothing -> return () 
-      Just chan -> do close chan 
+  killChan c = do
+      putStrLn "about to delay.."
+      threadDelay 70000 --to see if killing the superReceive first on both sides works. 
+      putStrLn "Beginning of VChannel killChan"
+      mbool <- readIORef (refIsServer c)
+      case mbool of
+          Nothing -> do
+            let str = "I don't know what to do; IsServer was never set which means regular initialize was used."
+            putStrLn str
+          Just b -> if b then do
+                           putStrLn "I am the server, I will not kill the vchannel"
+                           return ()
+                         else do
+                           mchan <- readIORef (reflibXenVChan c)
+                           case mchan of
+                             Nothing -> do
+                               putStrLn "NO VChan to close!!!"
+                               return ()
+                             Just chan -> do
+                               putStrLn "I'M CLOSING VCHAN"
+                               close chan 
+
   toRequest c = do 
     idd <- getDomId 
     return $ toJSON $ VChanRequest idd
@@ -116,11 +137,13 @@ instance IsChannel VChannel where
   defaultChan = do
     theirid <- newIORef Nothing
     xenvchan <- newIORef Nothing
-    return $ (VChannel theirid xenvchan)
+    isserver <- newIORef Nothing
+    return $ (VChannel theirid xenvchan isserver)
   chanTypeOf c = "VChannel"
 newtype VChanRequest = VChanRequest {
   id :: Int
   } deriving (Show, Eq)
+
 instance ToJSON VChanRequest where
   toJSON (VChanRequest x) = object
     [ "VChanRequestID" .= x]

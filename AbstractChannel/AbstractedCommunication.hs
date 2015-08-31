@@ -70,7 +70,10 @@ data Channel = forall a. (IsChannel a) => Channel {
      getMessages :: (TMVar [Value]),
      getUnitMVar :: (MVar ())
      }
-
+instance Eq Channel where
+ c1 == c2 = (getMessages c1) == (getMessages c2)
+instance Show Channel where
+  show c = chanTypeOf c
 instance IsChannel (Channel) where
  send (Channel a _ _ _) = send a
  receive (Channel a _ tmvar mvarUnit) = do 
@@ -116,11 +119,16 @@ instance IsChannel (Channel) where
      Just _ -> return ()
    putStrLn $ "Calling inner initializeB"
  killChan (Channel a tidref _ _) = do 
-   killChan a
+   --killChan a
    tid <- readIORef tidref
    case tid of 
      Nothing -> return () 
-     Just tid' -> killThread tid' 
+     Just tid' -> do
+       putStrLn "Killing superReceiveThread"
+       killThread tid'
+       putStrLn "finished killing superReceiveThread"
+   putStrLn "Killing internal Channel"
+   killChan a 
  toRequest (Channel a _ _ _) = toRequest a --(internalChan c)
  fromRequest v (Channel a b c d) = do 
    elilChan <- (fromRequest v a)  --(internalChan c)
@@ -268,6 +276,7 @@ superReceive c@(Channel a _ msgTMVar unitMVar) = do
      msgls <- atomically $ takeTMVar msgTMVar 
      atomically $ putTMVar msgTMVar (msgls ++ [val])
      putMVar unitMVar ()
+  yield --explicit yield to attempt to help the vchan issue
   superReceive c 
   
 

@@ -29,10 +29,12 @@ myMain = do
 type Ip = [(Int,Int)]
 testB :: Converse ()
 testB = do
-  send [(11,22) :: (Int,Int)]
+  let message = [(11,22) :: (Int,Int)]
+  send message
   resp <- receive :: Converse [(Int,Int)]
   liftIO $ putStrLn $ "response: " ++ (show resp)
-  send ([(111,222)] :: Ip)
+  let message2 = ([(111,222)] :: Ip)
+  send message2
   liftIO $ putStrLn $ "End of Converse"
   return ()
 {-

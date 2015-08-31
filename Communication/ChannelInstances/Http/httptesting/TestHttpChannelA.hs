@@ -34,7 +34,7 @@ myMain :: IO ()
 myMain = do
   return ()
   --declareDefaultComm' testA
-  eitherRes <- talkTo "10.100.0.207" testA
+  eitherRes <- talkTo "10.100.0.210" testA
   putStrLn (show eitherRes)
   
 testA :: Converse ()

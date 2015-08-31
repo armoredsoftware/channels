@@ -1,6 +1,7 @@
 #!/bin/bash
 
 cabal install AbstractChannel/ --force-reinstall
+cabal install Communication/Monad/ --force-reinstall
 #cabal install ~/protocolImplementation/protocolImplementation/shared/bytestringJSON/ --force-reinstall
 
 cabal install Communication/ChannelInstances/VChan/ --force-reinstall

@@ -17,7 +17,9 @@ instance MonadIO Converse where
 runConverse :: Channel -> Converse a -> IO a
 runConverse c conv = do
   (a,ch) <- chat conv c
+  putStrLn "before kill Channel in runConverse"
   killChan ch
+  putStrLn "after kill channel in runConverse"
   return a
 declareCommunication' :: (Channel,[Channel]) -> Converse a -> IO ()
 declareCommunication' x conv = declareCommunication x ((flip runConverse) conv)
@@ -65,6 +67,17 @@ receive = Converse (\c -> do
               Error err -> fail $ "Monad Receive: " ++ err --error err
               Success m -> return (m,c))
 
+eitherReceive :: (IsMessage m) => Converse (Either String m)
+eitherReceive = Converse (\c -> do
+  res <- AbstractedCommunication.receive c
+  case res of
+    Error err -> return (Left err,c)
+    Success m -> return (Right m, c)
+    )
+
+getChannel :: Converse Channel
+getChannel = Converse (\c -> return (c,c))
+
 data FailureChannel = FailureChannel deriving (Show)
 instance IsChannel FailureChannel where
  send f _ = do
@@ -82,7 +95,11 @@ instance IsChannel FailureChannel where
  
  
 test :: Converse ()
-test = do 
+test = do
+   --send (34,46)
+   --x <- receive :: Converse (Int,Int)
+   
+   
    --x <- CommunicationMonad.receive :: Converse String 
    str <- return "this is a string"
    liftIO $ putStrLn (show str)
