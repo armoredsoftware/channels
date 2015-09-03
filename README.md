@@ -6,6 +6,7 @@ To create your end of the conversation, use the Converse Monad.
 Example:
 
 import CommunicationMonad --(from communicationmonad package)
+
     testB :: Converse ()
     testB = do
       let message = [(11,22) :: (Int,Int)]
