@@ -6,16 +6,17 @@ To create your end of the conversation, use the Converse Monad.
 Example:
 
 import CommunicationMonad --(from communicationmonad package)
-testB :: Converse ()
-testB = do
-  let message = [(11,22) :: (Int,Int)]
-  send message
-  resp <- receive :: Converse [(Int,Int)]
-  liftIO $ putStrLn $ "response: " ++ (show resp)
-  let message2 = ([(111,222)] :: Ip)
-  send message2
-  liftIO $ putStrLn $ "End of Converse"
-  return ()
+
+    testB :: Converse ()
+    testB = do
+      let message = [(11,22) :: (Int,Int)]
+      send message
+      resp <- receive :: Converse [(Int,Int)]
+      liftIO $ putStrLn $ "response: " ++ (show resp)
+      let message2 = ([(111,222)] :: Ip)
+      send message2
+      liftIO $ putStrLn $ "End of Converse"
+      return ()
   
 The important parts here are of course send and receive. 
 
