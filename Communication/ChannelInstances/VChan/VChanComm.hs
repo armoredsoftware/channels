@@ -33,10 +33,22 @@ instance IsChannel VChannel where
     case mchan of 
       Nothing -> return $ Error "ummm.... the libxenvchan didn't exist!"
       Just chan -> do 
-        ctrlWait chan
+        --ctrlWait chan --this blocks indefinately in c! bad for when we need to kill the thread.
+        waitForStuff chan 
         logger <- createLogger
         bytes <- readChunkedMessageByteString logger chan
         return $ jsonParse (fromStrict bytes)
+        where
+        waitForStuff :: LibXenVChan -> IO ()
+        waitForStuff c = do
+          dat <- dataReady c
+          if dat > 0 then
+            return ()
+          else do
+           yield
+           waitForStuff c
+            
+        
   initialize c = do 
     mTheirID <- readIORef ( refmTheirID c )
     case (mTheirID ) of 
