@@ -69,7 +69,7 @@ gimmeAChannel ipaddress = do
           httpChan <- mkSkeletonChannel newChan  
           --change here to skeleton
           httpChan' <- mkSkeletonChannel httpchan
-          r <- establishComm chanToThem' [vChan, httpChan']
+          r <- establishComm chanToThem' [{-vChan,-} httpChan']
           killChan chanToThem' --this method started it, I better clean it up.
           return r
 

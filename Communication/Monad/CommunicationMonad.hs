@@ -17,10 +17,14 @@ instance MonadIO Converse where
 runConverse :: Channel -> Converse a -> IO a
 runConverse c conv = do
   (a,ch) <- chat conv c
-  putStrLn "before kill Channel in runConverse"
   killChan ch
-  putStrLn "after kill channel in runConverse"
   return a
+
+runConverse' :: Channel -> Converse a -> IO a
+runConverse' c conv = do
+  (a,ch) <- chat conv c
+  return a 
+
 declareCommunication' :: (Channel,[Channel]) -> Converse a -> IO ()
 declareCommunication' x conv = declareCommunication x ((flip runConverse) conv)
 
