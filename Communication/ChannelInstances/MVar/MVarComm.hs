@@ -1,7 +1,7 @@
 {-# LANGUAGE InstanceSigs, ConstraintKinds #-}
 
 
-module MVar.MVarComm where
+module MVarComm where
 
 import AbstractedCommunication
 import Control.Concurrent.MVar
@@ -13,45 +13,83 @@ import qualified  Data.Map.Strict as M
 
 
 
-data TestChan = TestChan String String (MVar (Value,String)) 
+data MVarChan = MVarChan String (MVar String) (MVar (Value,String)) 
 
 --instance IsMessage EvidenceDescriptor where
 
 
-instance IsChannel (TestChan) where
-  send (TestChan me they mvar) m = do 
+instance IsChannel (MVarChan) where
+  send (MVarChan me theym mvar) m = do
+    putStrLn "mvar sending"
+    they <- readMVar theym 
     putMVar mvar (toJSON m, they)
+    -- putMVar theym they
  --   tryPutMVar mvarUnit ()
     return True
-  receive (TestChan me they mvar) = do 
-    putStrLn "****"
+  receive (MVarChan me theym mvar) = do 
+    putStrLn "mvar receiving"
     v <- waitForMe me mvar 
-    putStrLn "TESTREC"
+    putStrLn $ "M:" ++ (show v)
     return $ fromJSON v 
-  killChan (TestChan me they mvar) = do 
+  initialize (MVarChan _ _ _) = return ()
+  toRequest (MVarChan me _ _) = return $ toJSON (me)
+  fromRequest val (MVarChan me1 theym mv) = do 
+    putStrLn $ "F:" ++ (show val)
+    case (fromJSON val :: Result String) of 
+      Error err -> return (Left err)
+      Success newThey -> do 
+         _ <- tryTakeMVar theym 
+         putMVar theym newThey 
+         return $ Right (MVarChan me1 theym mv)
+  
+  killChan (MVarChan me they mvar) = do               
      putStrLn $ "killing channel: " ++ me
-  initFail c = "Test Channel has failed"
-  chanTypeOf c = "Test Channel"
+  amend val c = do 
+     fr <- fromRequest val c 
+     case fr of 
+          Left err -> return c 
+          Right c' -> return c' 
+  defaultChan = do 
+     x <- newEmptyMVar
+     b <- newMVar "B"
+     return (MVarChan "A" b x)
+     
+  chanTypeOf c = "MVar Channel"
 
 waitForMe :: String ->  (MVar (Value,String)) -> IO Value
-waitForMe me mvar = do 
-  (_,n) <- readMVar mvar
-  putStrLn "WAIT"
-  if n == me 
-   then do
-    (v,_) <- takeMVar mvar 
-    return v   
-   else do 
+waitForMe me mvar = do
+  b <- isEmptyMVar mvar 
+  if b then do
     yield
-    threadDelay 100 
-    waitForMe me mvar  
+    -- putStrLn "E"
+    threadDelay 1000 
+    waitForMe me mvar
+  else do
+    (_,n) <- readMVar mvar
+    putStrLn "WAIT"
+    if n == me 
+     then do
+      (v,_) <- takeMVar mvar 
+      return v   
+     else do 
+      yield
+      threadDelay 1000 
+      waitForMe me mvar  
     
 
-instantiateOnNetwork :: (MVar (Value,String)) -> [(String,String)] -> M.Map String TestChan 
-instantiateOnNetwork net names = M.fromList ( map (\(me,they) -> (me,TestChan me they net)) names)
-
+instantiateOnNetwork :: (String,String) -> IO (MVarChan,MVarChan)
+instantiateOnNetwork (n1,n2) = do
+   messageMVar <- newEmptyMVar
+   m1 <- newMVar n2
+   m2 <- newMVar n1
+   let c1 = MVarChan n1 m1 messageMVar
+       c2 = MVarChan n2 m2 messageMVar
+   return (c1,c2)
+   
 ionet = newEmptyMVar :: IO (MVar (Value,String))
 
+
+   
 {-
 main' :: IO () 
 main' = do 
